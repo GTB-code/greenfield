@@ -360,7 +360,7 @@ function render(){
     if(inner) h+='<li data-sub="'+s.id+'" style="display:none;padding:0 0 var(--s-3);cursor:default;background:none">'+inner+'</li>';
   });
   h+='</ul>';
-  $('#sideNav').innerHTML='<div class="su-selectwrap plan-select"><select class="su-select" aria-label="Active scenario" id="scenarioSel"><option>Retire at 65</option><option>Retire at 62</option><option>Retire at 67</option><option>Plan B: downsize</option></select></div><div class="side-divider" role="presentation"></div>'+h;
+  $('#sideNav').innerHTML='<div class="su-selectwrap plan-select"><select class="su-select" aria-label="Active scenario" id="scenarioSel"><option>Retire at 65</option><option>Retire at 62</option><option>Retire at 67</option><option>Plan B: downsize</option></select></div>'+h;
   }
 function stub(title, path){ $('#stubHead').innerHTML='<div class="alo-top"><h2 class="snap-headline"><em class="yrs">'+title+'</em></h2><p class="bud-sub">'+path+'</p></div>'; }
 var MAP={overview:'home', myplan:'plan', explorers:'optimize'};

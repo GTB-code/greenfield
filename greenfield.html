@@ -26206,7 +26206,7 @@ body.conn-open.cn-match .layout.page[data-page="plan"] > .rail{ display:none !im
       +'<button type="button" class="cm-addinst" data-cm-addinst>+ Connect More</button>'
       +'<div class="cm-foot"><span class="cnt" data-cm-plan></span><button type="button" class="cta" data-cm-link>Link Accounts</button></div></div>'
       +'<div class="cm-col"><div class="cm-h">&nbsp;</div><div class="cm-arrows">'+arrows+'</div></div>'
-      +'<div class="cm-col"><div class="cm-h"><div class="t">Current Accounts</div><div class="s"><span>Self-stated inputs</span></div></div><div class="cm-list manual" data-slots>'+left+'</div>'
+      +'<div class="cm-col"><div class="cm-h"><div class="t">Accounts already in Boldin</div><div class="s"><span>Self-stated inputs</span></div></div><div class="cm-list manual" data-slots>'+left+'</div>'
       +(leftRest ? '<details class="cm-acc"'+(accOpen?' open':'')+'><summary><span>'+(slots.length-LIVE.length)+' more entr'+(slots.length-LIVE.length===1?'y':'ies')+', kept as entered</span><svg viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></summary><div class="cm-list manual">'+leftRest+'</div></details>' : '')
       +'</div>'
       +'</div>';
@@ -26850,5 +26850,25 @@ body.cn-match .layout.page[data-page="profile"] > .center{ grid-column:2 / 4; }
     if(was && !now){ setTimeout(function(){ sec.scrollIntoView({behavior:'smooth', block:'start'}); }, 60); }
     was=now;
   }).observe(document.body,{attributes:true, attributeFilter:['class']});
+})();
+</script>
+
+<style id="assetsConnectCSS">
+/* Assets: a small way in to Connections, right under the section subhead */
+.acc .cx-all{ display:inline-flex; align-items:center; gap:6px; margin-top:10px; padding:6px 12px; border:1px solid var(--green-cta); border-radius:999px; background:#fff; color:var(--green-cta); font:600 13px var(--font); line-height:1; cursor:pointer; transition:background .15s ease, color .15s ease; }
+.acc .cx-all svg{ width:13px; height:13px; }
+.acc .cx-all:hover{ background:var(--green-cta); color:#fff; }
+</style>
+<script id="assetsConnectJS">
+(function(){
+  'use strict';
+  var ICON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>';
+  document.querySelectorAll('.layout.page[data-page="plan"] .acc').forEach(function(acc){
+    var h2=acc.querySelector('h2'); if(!h2 || h2.textContent.trim()!=='Assets') return;
+    var sub=h2.parentElement.querySelector('.sub'); if(!sub || acc.querySelector('.cx-all')) return;
+    var b=document.createElement('button'); b.type='button'; b.className='cx-all'; b.innerHTML=ICON+'Connect all your accounts';
+    sub.insertAdjacentElement('afterend', b);
+    b.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); if(window.__connToday && window.__connToday.open) window.__connToday.open(); });
+  });
 })();
 </script>

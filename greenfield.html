@@ -24042,7 +24042,7 @@ body:has(.layout.adv-page.on #vWorkspace.on .wpane[data-pane="chat"].on) .dock{ 
 <div class="top-menu alert-menu" id="alertMenu" role="dialog" aria-label="Notifications">
   <div class="al-head"><span class="t">Notifications</span><button type="button" class="clear" id="alClear">Mark all read</button></div>
   <div class="al-list" id="alList"></div>
-  <div class="al-foot"><button type="button" data-al-go="today">Open My Money →</button></div>
+  <div class="al-foot"><button type="button" data-al-go="notifications">Open notifications →</button></div>
 </div>
 <script>
 (function(){
@@ -24114,6 +24114,7 @@ body:has(.layout.adv-page.on #vWorkspace.on .wpane[data-pane="chat"].on) .dock{ 
   document.addEventListener('keydown', function(e){ if(e.key==='Escape') close(); });
   window.addEventListener('resize', function(){ if(menu.classList.contains('open')) place(); });
   render();
+  window.__alerts={ list:ALERTS, render:render, close:close };
 })();
 </script>
 <!-- COACH-ALERTS END -->
@@ -26189,10 +26190,14 @@ body.conn-open.cn-match .layout.page[data-page="plan"] > .rail{ display:none !im
   function render(){
     var left='', arrows='', right='';
     var leftRest='';
-    slots.forEach(function(m,i){ var r=manualRow(m, i, false); if(asNew[i]) r=r.replace('class="cm-row"','class="cm-row skip"'); if(i<LIVE.length) left += r; else leftRest += r; });
+    slots.forEach(function(m,i){ var r=manualRow(m, i, false);
+      if(asNew[i]) r=r.replace('class="cm-row"','class="cm-row skip"');
+      /* an unchecked connected row releases the entry across from it: it stays as entered this time */
+      if(i<LIVE.length && v.dataset['chk'+i]==='0' && m){ r=r.replace('class="cm-row','class="cm-row held').replace('<div class="rep">','<div class="hold">Not linked this time. Stays as entered.</div><div class="rep">'); }
+      if(i<LIVE.length) left += r; else leftRest += r; });
     LIVE.forEach(function(a,i){
-      var st=pairState(i);
-      arrows += '<span class="'+(st==='new'?'off':st==='check'?'warn':'')+'"><i class="g">&#8646;</i><i class="c">'+CHAIN+'</i></span>';
+      var st=pairState(i); var off = v.dataset['chk'+i]==='0';
+      arrows += '<span class="'+(st==='new'||off?'off':st==='check'?'warn':'')+'"><i class="g">&#8646;</i><i class="c">'+CHAIN+'</i></span>';
       /* Schwab: names and types rarely line up, so each row can be pointed at the entry it really is */
       var pick = ((a.inst||INST)==='Charles Schwab' && (st==='check' || st==='new')) ? '<div class="cm-pick"><label>Same as <select data-cm-same="'+i+'"><option value="">Choose account</option>'+MANUAL.map(function(m){ return '<option value="'+m.id+'">'+m.nm+' ('+money(m.amt)+')</option>'; }).join('')+'</select></label></div>' : (st==='same' ? '<div class="cm-pick done">Same account, confirmed by you <button type="button" data-cm-unsame="'+i+'">Undo</button></div>' : '');
       var lg=(window.__instLogo && window.__instLogo(a.inst||INST)); var lgh= lg ? '<img class="lg" src="'+lg+'" alt="">' : '<span class="lg-ph">'+BANK+'</span>';
@@ -26244,6 +26249,8 @@ body.conn-open.cn-match .layout.page[data-page="plan"] > .rail{ display:none !im
     else { var e=extra.slice(); var it=e.splice(from.idx,1)[0]; e.splice(to.idx,0,it); extra=e; }
     /* a gap never needs to live in the extra list */
     extra=extra.filter(Boolean);
+    /* dropping an entry across from a connected row is a deliberate pairing, so Add as new comes off */
+    if(to.where==='slot' && to.idx<LIVE.length && slots[to.idx]) asNew[to.idx]=false;
     render();
   }
   v.addEventListener('dragstart', function(e){ var row=e.target.closest('.cm-list.manual .cm-row'); if(!row) return; dragFrom=locate(row); row.classList.add('drag'); e.dataTransfer.effectAllowed='move'; try{ e.dataTransfer.setData('text/plain','row'); }catch(x){} });
@@ -26259,7 +26266,7 @@ body.conn-open.cn-match .layout.page[data-page="plan"] > .rail{ display:none !im
   v.addEventListener('click', function(e){
     var un=e.target.closest('[data-cm-unsame]'); if(un){ forced[+un.dataset.cmUnsame]=null; render(); return; }
     var nb=e.target.closest('[data-cm-new]'); if(nb){ var ii=+nb.dataset.cmNew; asNew[ii]=!asNew[ii]; render(); return; }
-    var c=e.target.closest('.cm-chk'); if(c){ c.classList.toggle('on'); var row=c.closest('.cm-row'); v.dataset['chk'+row.dataset.i]= c.classList.contains('on')?'1':'0'; c.setAttribute('aria-checked', c.classList.contains('on')?'true':'false'); plan(); return; }
+    var c=e.target.closest('.cm-chk'); if(c){ c.classList.toggle('on'); var row=c.closest('.cm-row'); v.dataset['chk'+row.dataset.i]= c.classList.contains('on')?'1':'0'; c.setAttribute('aria-checked', c.classList.contains('on')?'true':'false'); plan(); render(); return; }
     if(e.target.closest('[data-cm-all]')){ var on = selected().length!==LIVE.length; v.querySelectorAll('.cm-chk').forEach(function(k,i){ k.classList.toggle('on',on); v.dataset['chk'+i]=on?'1':'0'; k.setAttribute('aria-checked',on?'true':'false'); }); plan(); return; }
     if(e.target.closest('[data-cm-link]')) link();
     if(e.target.closest('[data-cm-addinst]')){ if(window.__connectSheet) window.__connectSheet.open(function(inst,picked){ addMore(inst,picked); }); return; }
@@ -26375,6 +26382,10 @@ body[data-view="today"] .edit-card::before{
 
 #connToday .cm-list.live .cm-row button.mt:hover{ outline:1.5px solid currentColor; }
 #connToday .cm-list.manual .cm-row.skip .cm-num{ color:#B5B8C2; }
+#connToday .cm-list.manual .cm-row.held{ opacity:.55; }
+#connToday .cm-row .hold{ display:none; font-size:12.5px; color:var(--text-tertiary); margin-top:3px; }
+#connToday .cm-row.held .hold{ display:block; }
+#connToday .cm-row.held .ty{ display:none; }
 #connToday .cm-hint{ font-size:13.5px; color:var(--text-secondary); margin:10px 0 0; line-height:1.45; }
 #connToday .cm-extra{ margin-top:18px; }
 #connToday .cm-acc{ margin-top:16px; border:1px solid var(--hairline); border-radius:12px; background:#FAFAFB; }
@@ -26858,6 +26869,8 @@ body.cn-match .layout.page[data-page="profile"] > .center{ grid-column:2 / 4; }
 .acc .cx-all{ display:inline-flex; align-items:center; gap:6px; margin-top:10px; padding:6px 12px; border:1px solid var(--green-cta); border-radius:999px; background:#fff; color:var(--green-cta); font:600 13px var(--font); line-height:1; cursor:pointer; transition:background .15s ease, color .15s ease; }
 .acc .cx-all svg{ width:13px; height:13px; }
 .acc .cx-all:hover{ background:var(--green-cta); color:#fff; }
+/* only while the section is open */
+.acc-head.acc-collapsed .cx-all{ display:none; }
 </style>
 <script id="assetsConnectJS">
 (function(){
@@ -26872,3 +26885,267 @@ body.cn-match .layout.page[data-page="profile"] > .center{ grid-column:2 / 4; }
   });
 })();
 </script>
+
+<!-- NOTIFICATIONS PAGE BEGIN: the bell's full page. Every open item is something the plan is waiting on. -->
+<style id="notifPageCSS">
+.layout.page[data-page="notifications"] .side h1{ margin-bottom:var(--s-4); }
+.nf-nav{ display:flex; flex-direction:column; gap:2px; }
+.nf-nav button{ display:flex; align-items:center; justify-content:space-between; gap:10px; width:100%; border:0; background:none; text-align:left;
+  font:500 16px var(--font); color:var(--text-secondary); padding:8px 12px; border-radius:10px; cursor:pointer; }
+.nf-nav button:hover{ background:#F6F7F8; }
+.nf-nav button.on{ background:#F2F3F5; color:var(--ink); font-weight:600; }
+.nf-nav button .n{ font-size:12.5px; font-weight:600; color:var(--text-tertiary); background:#F1F2F4; border-radius:999px; padding:2px 8px; min-width:22px; text-align:center; }
+.nf-nav button.on .n{ background:#E3F1EA; color:var(--green-cta); }
+.nf-side-foot{ margin-top:var(--s-6); padding-top:var(--s-4); border-top:1px solid var(--hairline); }
+.nf-side-foot a{ font-size:14px; color:var(--green-cta); cursor:pointer; text-decoration:none; }
+.nf-side-foot a:hover{ text-decoration:underline; }
+
+.nf-head{ margin-top:-8px; }
+.nf-head .pf-hl{ margin-bottom:6px; }
+.nf-head .sub{ font-size:17px; color:var(--text-secondary); line-height:1.5; margin:0; max-width:52ch; }
+.nf-tools{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:var(--s-6); padding-bottom:10px; border-bottom:1px solid var(--hairline); }
+.nf-tools .t{ font-size:15px; font-weight:600; color:var(--ink); }
+.nf-tools button{ border:0; background:none; font:500 14px var(--font); color:var(--green-cta); cursor:pointer; padding:4px 2px; }
+.nf-tools button:hover{ text-decoration:underline; }
+
+.nf-group{ margin-top:0; }
+.nf-group-h{ display:flex; align-items:baseline; gap:8px; font-size:13px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--text-tertiary); margin:22px 0 10px; }
+.nf-tools[hidden]{ display:none; }
+.nf-head + .nf-tools + .nf-group:not([hidden]) .nf-group-h{ margin-top:var(--s-6); }
+.nf-group-h .n{ font-weight:600; letter-spacing:0; text-transform:none; font-size:13px; }
+.nf-group[hidden]{ display:none; }
+.nf-empty{ border:1px dashed var(--hairline); border-radius:14px; padding:22px; text-align:center; font-size:15px; color:var(--text-secondary); }
+
+.nf-card{ display:grid; grid-template-columns:40px minmax(0,1fr); gap:14px; padding:18px 20px; border:1px solid var(--hairline); border-radius:16px; background:#fff; margin-bottom:10px;
+  transition:opacity .35s ease, transform .4s cubic-bezier(.22,1,.36,1), border-color .3s ease, background .3s ease; }
+.nf-card.unread{ border-color:var(--hairline); background:#fff; }
+.nf-card.leaving{ opacity:0; transform:translateX(18px); }
+.nf-card.arriving{ animation:nfIn .45s cubic-bezier(.22,1,.36,1); }
+@keyframes nfIn{ from{ opacity:0; transform:translateY(-8px);} to{ opacity:1; transform:none;} }
+.nf-ic{ width:40px; height:40px; border-radius:50%; display:grid; place-items:center; background:var(--eggshell); color:var(--green-cta); }
+.nf-ic svg{ width:19px; height:19px; }
+.nf-ic.warn{ background:#FFF6E3; color:#8A6212; }
+.nf-ic.teal{ background:#E3EEF0; color:var(--teal); }
+.nf-ic.done{ background:#E3F1EA; color:var(--green-cta); }
+.nf-bd{ min-width:0; }
+.nf-top{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+.nf-t{ font-size:17px; font-weight:600; color:var(--ink); line-height:1.35; }
+.nf-card.done .nf-t{ color:var(--text-secondary); text-decoration:line-through; text-decoration-color:#B9C3BD; }
+.nf-meta{ display:flex; align-items:center; gap:8px; flex:none; }
+.nf-tag{ font-size:11.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; padding:3px 9px; border-radius:999px; background:#F1F2F4; color:var(--text-secondary); white-space:nowrap; }
+.nf-tag.plan{ background:#E8F3EC; color:#0E794E; }
+.nf-tag.money{ background:#FBF1D3; color:#7A5A00; }
+.nf-tag.invest{ background:#E3EEF0; color:var(--teal); }
+.nf-tag.adv{ background:#EFE9F8; color:#5B3E99; }
+.nf-pts{ font-size:13px; font-weight:700; color:var(--green-cta); white-space:nowrap; }
+.nf-s{ font-size:15px; color:var(--text-secondary); line-height:1.5; margin-top:4px; }
+.nf-w{ font-size:13px; color:var(--text-tertiary); margin-top:6px; }
+.nf-act{ display:flex; align-items:center; gap:14px; margin-top:14px; flex-wrap:wrap; }
+.nf-act .go{ display:inline-flex; align-items:center; gap:6px; min-height:38px; padding:0 16px; border-radius:999px; border:0; background:var(--green-cta); color:#fff; font:600 14px var(--font); cursor:pointer; }
+.nf-act .go:hover{ background:#0F5D45; }
+.nf-act .go::after{ content:'\2192'; }
+.nf-act .lite{ border:0; background:none; font:500 14px var(--font); color:var(--text-secondary); cursor:pointer; padding:4px 2px; }
+.nf-act .lite:hover{ color:var(--ink); text-decoration:underline; }
+.nf-card.done .nf-act, .nf-card.info .nf-act .lite[data-nf-done]{ display:none; }
+.nf-card.done .nf-w b{ color:var(--green-cta); font-weight:600; }
+
+/* right rail: how complete the plan is, and what is still open */
+.nf-rail{ border:1px solid var(--hairline); border-radius:16px; padding:20px; background:#fff; }
+.nf-rail .k{ font-size:12px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--text-tertiary); }
+.nf-ring{ display:flex; align-items:center; gap:16px; margin-top:12px; }
+.nf-ring svg{ width:84px; height:84px; flex:none; transform:rotate(-90deg); }
+.nf-ring circle{ fill:none; stroke-width:8; }
+.nf-ring .bg{ stroke:#EEF1EF; }
+.nf-ring .fg{ stroke:var(--green-cta); stroke-linecap:round; transition:stroke-dashoffset .9s cubic-bezier(.22,1,.36,1); }
+.nf-ring .big{ font-size:34px; font-weight:600; line-height:1; color:var(--ink); letter-spacing:-.5px; }
+.nf-ring .big small{ font-size:16px; font-weight:500; color:var(--text-secondary); margin-left:2px; }
+.nf-ring .l{ font-size:14px; color:var(--text-secondary); margin-top:4px; line-height:1.4; }
+.nf-left{ margin-top:18px; padding-top:16px; border-top:1px solid var(--hairline); }
+.nf-left ul{ list-style:none; margin:10px 0 0; padding:0; }
+.nf-left li{ display:flex; align-items:center; gap:10px; font-size:14.5px; color:var(--ink); padding:7px 0; cursor:pointer; }
+.nf-left li:hover .nm{ text-decoration:underline; }
+.nf-left li .dot{ width:9px; height:9px; border-radius:50%; background:#DDE2DF; flex:none; }
+.nf-left li.done .dot{ background:var(--green-cta); }
+.nf-left li.done .nm{ color:var(--text-tertiary); text-decoration:line-through; }
+.nf-left li .pts{ margin-left:auto; font-size:12.5px; font-weight:700; color:var(--green-cta); }
+.nf-left li.done .pts{ color:var(--text-tertiary); }
+.nf-rail .nf-note{ font-size:13.5px; color:var(--text-secondary); line-height:1.5; margin-top:14px; }
+</style>
+
+<div class="layout page" data-page="notifications" id="notifPage">
+  <aside class="side">
+    <h1>Notifications</h1>
+    <div class="nf-nav" id="nfNav">
+      <button type="button" class="on" data-nf-filter="all">All <span class="n" data-nf-n="all">0</span></button>
+      <button type="button" data-nf-filter="action">Needs action <span class="n" data-nf-n="action">0</span></button>
+      <button type="button" data-nf-filter="plan">Plan inputs <span class="n" data-nf-n="plan">0</span></button>
+      <button type="button" data-nf-filter="money">Money <span class="n" data-nf-n="money">0</span></button>
+      <button type="button" data-nf-filter="invest">Investments <span class="n" data-nf-n="invest">0</span></button>
+      <button type="button" data-nf-filter="adv">Advisory <span class="n" data-nf-n="adv">0</span></button>
+      <button type="button" data-nf-filter="done">Done <span class="n" data-nf-n="done">0</span></button>
+    </div>
+    <div class="nf-side-foot"><a data-nf-prefs>Notification settings</a></div>
+  </aside>
+  <main class="center">
+    <section class="nf-head">
+      <h2 class="pf-hl">Everything your plan is <span class="pf-em">waiting on</span>.</h2>
+      <p class="sub">Each open item moves your score. Do it here, or mark it done when you have.</p>
+    </section>
+    <div class="nf-tools" hidden><span class="t" id="nfToolsT">All notifications</span><button type="button" data-nf-readall>Mark all read</button></div>
+    <div class="nf-group" data-nf-group="action"><div class="nf-group-h">Needs your action <span class="n" data-nf-gn="action"></span></div><div data-nf-list="action"></div></div>
+    <div class="nf-group" data-nf-group="info"><div class="nf-group-h">Good to know <span class="n" data-nf-gn="info"></span></div><div data-nf-list="info"></div></div>
+    <div class="nf-group" data-nf-group="done"><div class="nf-group-h">Done <span class="n" data-nf-gn="done"></span></div><div data-nf-list="done"></div></div>
+    <div class="nf-empty" id="nfEmpty" hidden>Nothing here. Your plan is caught up.</div>
+  </main>
+  <aside class="rail">
+    <div class="nf-rail">
+      <div class="k">Plan completeness</div>
+      <div class="nf-ring">
+        <svg viewBox="0 0 84 84" aria-hidden="true"><circle class="bg" cx="42" cy="42" r="36"/><circle class="fg" cx="42" cy="42" r="36" id="nfRingFg"/></svg>
+        <div><div class="big"><span id="nfPct">0</span><small>%</small></div><div class="l" id="nfPctL">of your plan is filled in</div></div>
+      </div>
+      <div class="nf-left">
+        <div class="k">What moves it</div>
+        <ul id="nfLeft"></ul>
+      </div>
+      <p class="nf-note">Marking an item done here updates your score the same as finishing it in the plan.</p>
+    </div>
+  </aside>
+</div>
+
+<script id="notifPageJS">
+(function(){
+  'use strict';
+  var page=document.getElementById('notifPage'); if(!page) return;
+  var SV='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">';
+  var IC={
+    conv:SV+'<path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/></svg>',
+    drift:SV+'<path d="M16 7h6v6"/><path d="m22 7-8.5 8.5-5-5L2 17"/></svg>',
+    doc:SV+'<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M9 14h6M9 17h4"/></svg>',
+    cal:SV+'<path d="M8 2v4M16 2v4M3 10h18"/><rect x="3" y="4" width="18" height="18" rx="2"/></svg>',
+    shield:SV+'<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>',
+    cash:SV+'<rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>',
+    link:SV+'<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>',
+    home:SV+'<path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg>',
+    heart:SV+'<path d="M19 14c1.5-1.5 3-3.2 3-5.5A4.5 4.5 0 0 0 12 6a4.5 4.5 0 0 0-10 2.5C2 11 4 13 12 21c3-3 5.3-5.3 7-7z"/></svg>',
+    people:SV+'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+    ss:SV+'<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>',
+    adv:SV+'<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
+    check:SV+'<path d="M20 6 9 17l-5-5"/></svg>'
+  };
+  var TAG={plan:'Plan input', money:'Money', invest:'Investments', adv:'Advisory'};
+  /* kind: action (moves the plan) or info (worth knowing). pts: what finishing it adds to the score. */
+  var ITEMS=[
+    { id:'roth',   kind:'action', cat:'plan',   ic:'conv',  tone:'',     pts:4, short:'Roth conversion', t:'Convert $17,800 to Roth before December ends',
+      s:'That amount fits under the 12% band this year. Last December you left $9,400 of it unused.', w:'2 hours ago', cta:'Plan the conversion', go:'plan' },
+    { id:'drift',  kind:'action', cat:'invest', ic:'drift', tone:'warn', pts:3, t:'Rebalance the brokerage back to 60/40',
+      s:'It has drifted to 71% stocks. Two years without a rebalance, three years before you retire.', w:'Yesterday', cta:'See the fix', go:'optimize' },
+    { id:'estate', kind:'action', cat:'plan',   ic:'doc',   tone:'',     pts:5, short:'Estate documents', t:'Add your estate documents',
+      s:'Will, trust, and powers of attorney are blank. The plan treats everything as passing by default.', w:'2 days ago', cta:'Add estate details', go:'plan:estate' },
+    { id:'ltc',    kind:'action', cat:'plan',   ic:'heart', tone:'',     pts:4, short:'Long-term care', t:'Set a long-term care assumption',
+      s:'No care cost is modeled after 80. A planning figure is better than none.', w:'2 days ago', cta:'Add long-term care', go:'plan:expenses' },
+    { id:'home',   kind:'action', cat:'plan',   ic:'home',  tone:'',     pts:3, short:'Home equity plan', t:'Decide what happens to the house',
+      s:'Keep it, downsize, or sell. The home equity plan is empty and it is your largest asset.', w:'2 days ago', cta:'Set the home plan', go:'plan:home' },
+    { id:'conn',   kind:'action', cat:'money',  ic:'link',  tone:'',     pts:3, t:'Connect your accounts',
+      s:'Six balances are still typed in by hand. Linked accounts stay current on their own.', w:'3 days ago', cta:'Connect accounts', go:'connections' },
+    { id:'bene',   kind:'action', cat:'money',  ic:'people',tone:'warn', pts:2, t:'Name a beneficiary on the Fidelity 401(k)',
+      s:'It is the only retirement account without one. Takes about two minutes at Fidelity.', w:'4 days ago', cta:'Open the account', go:'today:assets' },
+    { id:'ss',     kind:'action', cat:'plan',   ic:'ss',    tone:'',     pts:3, short:'Social Security, Lily', t:'Pick a Social Security start age for Lily',
+      s:'The plan assumes 67. Waiting to 70 raises her benefit about 24%.', w:'5 days ago', cta:'Set start age', go:'plan:income' },
+    { id:'review', kind:'action', cat:'adv',    ic:'adv',   tone:'teal', pts:2, t:'Marshall sent back your plan review',
+      s:'Four notes on the draft, two of them about the Roth timing. Reply when you have a minute.', w:'Last week', cta:'Open the review', go:'advisory' },
+    { id:'medi',   kind:'info',   cat:'plan',   ic:'cal',   tone:'teal', read:true, t:'Medicare’s look-back starts with your 2028 return',
+      s:'What you convert in 2028 sets your 2030 premiums. Worth a look before year end.', w:'Last week', cta:'See the timeline', go:'plan' },
+    { id:'surp',   kind:'info',   cat:'money',  ic:'cash',  tone:'',     read:true, t:'Your surplus rose to $3,450 a month',
+      s:'Three months running. Coach suggests routing the increase to the Roth before December.', w:'Last week', cta:'See cash flow', go:'today' },
+    { id:'stress', kind:'info',   cat:'plan',   ic:'shield',tone:'teal', read:true, t:'Your plan survived this quarter’s stress test',
+      s:'A 2022-style drop the year before retirement still leaves you funded to 99.', w:'2 weeks ago', cta:'See the test', go:'plan' }
+  ];
+  var BASE=72;             /* what is already filled in */
+  var filter='all';
+  var lists={}; page.querySelectorAll('[data-nf-list]').forEach(function(l){ lists[l.dataset.nfList]=l; });
+
+  function pts(){ return ITEMS.filter(function(i){ return i.kind==='action' && i.done; }).reduce(function(a,i){ return a+i.pts; }, 0); }
+  function pct(){ return Math.min(100, BASE+pts()); }
+  function visible(i){
+    if(filter==='all') return true;
+    if(filter==='done') return !!i.done;
+    if(filter==='action') return i.kind==='action' && !i.done;
+    return i.cat===filter;
+  }
+  function card(i){
+    var group = i.done ? 'done' : i.kind;
+    var cls='nf-card '+(i.done?'done':'')+(!i.read&&!i.done?' unread':'')+(i.kind==='info'?' info':'');
+    return '<div class="'+cls+'" data-nf-id="'+i.id+'">'
+      +'<span class="nf-ic '+(i.done?'done':(i.tone||''))+'">'+(i.done?IC.check:IC[i.ic])+'</span>'
+      +'<div class="nf-bd"><div class="nf-top"><div class="nf-t">'+i.t+'</div><div class="nf-meta"><span class="nf-tag '+i.cat+'">'+TAG[i.cat]+'</span>'+(i.kind==='action'&&!i.done?'<span class="nf-pts">+'+i.pts+' pts</span>':'')+'</div></div>'
+      +'<div class="nf-s">'+i.s+'</div>'
+      +'<div class="nf-w">'+(i.done?'<b>Done.</b> +'+i.pts+' pts added to your score.':i.w)+'</div>'
+      +'<div class="nf-act"><button type="button" class="go" data-hm-go="'+i.go+'" data-nf-open="'+i.id+'">'+i.cta+'</button>'
+      +(i.kind==='action'?'<button type="button" class="lite" data-nf-done="'+i.id+'">Mark done</button>':'')
+      +'<button type="button" class="lite" data-nf-snooze="'+i.id+'">Snooze a week</button></div></div></div>';
+  }
+  function render(){
+    var counts={all:0, action:0, plan:0, money:0, invest:0, adv:0, done:0}, g={action:0, info:0, done:0};
+    lists.action.innerHTML=''; lists.info.innerHTML=''; lists.done.innerHTML='';
+    ITEMS.forEach(function(i){
+      if(i.snoozed) return;
+      counts.all++; if(i.done) counts.done++; else { if(i.kind==='action') counts.action++; counts[i.cat]++; }
+      if(!visible(i)) return;
+      var grp = i.done ? 'done' : i.kind; g[grp]++;
+      lists[grp].insertAdjacentHTML('beforeend', card(i));
+    });
+    Object.keys(g).forEach(function(k){ var el=page.querySelector('[data-nf-group="'+k+'"]'); el.hidden = g[k]===0; var n=el.querySelector('[data-nf-gn]'); n.textContent = g[k] ? g[k] : ''; });
+    document.getElementById('nfEmpty').hidden = (g.action+g.info+g.done)>0;
+    Object.keys(counts).forEach(function(k){ var n=page.querySelector('[data-nf-n="'+k+'"]'); if(n) n.textContent=counts[k]; });
+    var labels={all:'All notifications', action:'Needs your action', plan:'Plan inputs', money:'Money', invest:'Investments', adv:'Advisory', done:'Done'};
+    document.getElementById('nfToolsT').textContent=labels[filter];
+    ring();
+    /* the bell's count follows what is still unread here */
+    if(window.__alerts){ var open=ITEMS.filter(function(i){ return !i.read && !i.done && !i.snoozed; }).length;
+      var c=document.getElementById('alertCount'); if(c){ c.textContent=open; c.hidden=open===0; } }
+  }
+  function ring(){
+    var p=pct(), fg=document.getElementById('nfRingFg'), C=2*Math.PI*36;
+    fg.style.strokeDasharray=C; fg.style.strokeDashoffset=C*(1-p/100);
+    var el=document.getElementById('nfPct'), from=+el.textContent||0, t0=performance.now();
+    (function step(now){ var k=Math.min(1,(now-t0)/700); k=1-Math.pow(1-k,3); el.textContent=Math.round(from+(p-from)*k); if(k<1) requestAnimationFrame(step); })(t0);
+    var left=document.getElementById('nfLeft'); left.innerHTML=ITEMS.filter(function(i){ return i.kind==='action' && i.cat==='plan'; }).map(function(i){
+      return '<li class="'+(i.done?'done':'')+'" data-nf-jump="'+i.id+'"><span class="dot"></span><span class="nm">'+(i.short||i.t)+'</span><span class="pts">+'+i.pts+'</span></li>';
+    }).join('');
+    var openN=ITEMS.filter(function(i){ return i.kind==='action' && !i.done && !i.snoozed; }).length;
+    document.getElementById('nfPctL').textContent = openN ? 'of your plan is filled in. '+openN+' item'+(openN===1?'':'s')+' left.' : 'of your plan is filled in. Nothing left open.';
+  }
+  function byId(id){ for(var k=0;k<ITEMS.length;k++) if(ITEMS[k].id===id) return ITEMS[k]; }
+  function leave(id, then){
+    var el=page.querySelector('.nf-card[data-nf-id="'+id+'"]'); if(!el){ then(); return; }
+    el.classList.add('leaving'); setTimeout(function(){ then(); var n=page.querySelector('.nf-card[data-nf-id="'+id+'"]'); if(n) n.classList.add('arriving'); }, 320);
+  }
+
+  page.addEventListener('click', function(e){
+    var b;
+    if((b=e.target.closest('[data-nf-filter]'))){ filter=b.dataset.nfFilter; page.querySelectorAll('[data-nf-filter]').forEach(function(x){ x.classList.toggle('on', x===b); }); render(); return; }
+    if((b=e.target.closest('[data-nf-done]'))){ var it=byId(b.dataset.nfDone); it.read=true; leave(it.id, function(){ it.done=true; render(); }); if(typeof window.toast==='function') window.toast('Done. +'+it.pts+' pts added to your plan score.'); return; }
+    if((b=e.target.closest('[data-nf-snooze]'))){ var s=byId(b.dataset.nfSnooze); leave(s.id, function(){ s.snoozed=true; render(); }); if(typeof window.toast==='function') window.toast('Snoozed. It comes back next week.'); return; }
+    if((b=e.target.closest('[data-nf-open]'))){ byId(b.dataset.nfOpen).read=true; /* the data-hm-go handler takes it from here */ return; }
+    if((b=e.target.closest('[data-nf-readall]'))){ ITEMS.forEach(function(i){ i.read=true; }); render(); return; }
+    if((b=e.target.closest('[data-nf-jump]'))){ filter='plan'; page.querySelectorAll('[data-nf-filter]').forEach(function(x){ x.classList.toggle('on', x.dataset.nfFilter==='plan'); }); render();
+      var c=page.querySelector('.nf-card[data-nf-id="'+b.dataset.nfJump+'"]'); if(c){ c.scrollIntoView({behavior:'smooth', block:'center'}); } return; }
+    if((b=e.target.closest('[data-nf-prefs]'))){ if(window.__goView) window.__goView('profile'); setTimeout(function(){ var s=document.getElementById('pf-sec-notifications'); if(s) s.scrollIntoView({behavior:'smooth', block:'start'}); }, 120); return; }
+  });
+
+  /* the view: showView knows nothing about this page, so it is swapped in on the view event */
+  function show(on){
+    if(on){ document.querySelectorAll('.layout.page.on').forEach(function(p){ p.classList.remove('on'); }); page.classList.add('on'); document.body.dataset.page='notifications'; document.title='Boldin · Notifications'; render(); }
+    else page.classList.remove('on');
+  }
+  window.addEventListener('boldin:view', function(e){ show(e.detail==='notifications'); });
+  /* the bell's own rows and footer route here too */
+  document.addEventListener('click', function(e){
+    var go=e.target.closest && e.target.closest('#alertMenu [data-al-go="notifications"]');
+    if(go){ e.stopPropagation(); if(window.__alerts) window.__alerts.close(); if(window.__goView) window.__goView('notifications'); }
+  }, true);
+  render();
+})();
+</script>
+<!-- NOTIFICATIONS PAGE END -->

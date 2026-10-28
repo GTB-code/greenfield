@@ -28446,20 +28446,30 @@ body.home-wide[data-page="home"]:not(.ai-fullscreen) .dock .dock-inner{ max-widt
 :root{ --hw-max:1600px; --hw-rail:440px; }
 /* the AI owns the whole right side, top to bottom: a fixed 440px panel on the 1600 shell's right edge.
    The top nav and its three icon buttons end where the content ends, left of the panel. */
-body.home-wide[data-page="home"].ai-expanded:not(.ai-fullscreen) .topnav{
-  left:max(0px, calc(50% - var(--hw-max) / 2)); transform:none; width:calc(100% - var(--hw-rail)); max-width:calc(var(--hw-max) - var(--hw-rail)); }
 body.home-wide.ai-expanded:not(.ai-fullscreen) .layout.hm-page.on > .rail.hm-ai-rail{
-  position:sticky; top:0; align-self:start; height:100vh; box-sizing:border-box; width:var(--hw-rail); min-height:0; z-index:50;
-  margin:0 calc(-1 * var(--s-8)) 0 0;   /* out to the shell's right edge; the page's top padding moves onto the content so the panel starts at the viewport top */
+  position:sticky; top:73px; align-self:start; height:calc(100vh - 73px); box-sizing:border-box; width:var(--hw-rail); min-height:0; z-index:50;
+  margin:73px calc(-1 * var(--s-8)) 0 0;   /* under the nav, out to the shell's right edge */
   background:var(--white); border-left:1px solid var(--hairline); padding:22px var(--s-8) 0 28px; overflow:hidden; }
 /* the page's top and bottom padding move onto the content, so the grid row (the panel's sticky range) runs the full document height */
 body.home-wide.ai-expanded:not(.ai-fullscreen) .layout.hm-page.on{ padding-top:0; padding-bottom:0; }
 body.home-wide.ai-expanded:not(.ai-fullscreen) .layout.hm-page.on > .content{ padding-top:calc(73px + var(--s-8)); padding-bottom:160px; }
-body.home-wide.ai-expanded:not(.ai-fullscreen) .hm-ai-rail .rail-ai-toggle{ top:18px; right:var(--s-8); }
-body.home-wide.ai-expanded:not(.ai-fullscreen) .hm-ai-rail .rail-ai-fs{ top:18px; right:calc(var(--s-8) + 44px); }
-body.home-wide.ai-expanded:not(.ai-fullscreen) .hm-ai-rail .aic-thread{ flex:0 1 auto; margin-top:36px; }
+body.home-wide.ai-expanded:not(.ai-fullscreen) .hm-ai-rail .rail-ai-toggle{ top:20px; right:var(--s-8); }
+body.home-wide.ai-expanded:not(.ai-fullscreen) .hm-ai-rail .rail-ai-fs{ top:20px; right:calc(var(--s-8) + 44px); }
+body.home-wide.ai-expanded:not(.ai-fullscreen) .hm-ai-rail .aic-thread{ flex:0 1 auto; }
+/* like Google's Research panel: the questions lead, the thread appears once a question is asked */
+body.home-wide.ai-expanded:not(.ai-fullscreen) .hm-ai-rail .rail-ai-chat:not(:has(.aic-msg.user)) .aic-thread{ display:none; }
 /* the ask bar lives inside the panel now, so the dock's page-wide fade goes */
 body.home-wide[data-page="home"].ai-expanded:not(.ai-fullscreen) .dock{ background:none; }
+/* the composer, like Google Finance's: a tall rounded box. Input and mic on the first row, + and send on the second. */
+body.home-wide[data-page="home"].ai-expanded:not(.ai-fullscreen) .dock .askbar{
+  display:grid; grid-template-columns:auto minmax(0,1fr) auto; grid-template-rows:auto auto; column-gap:10px; row-gap:8px; align-items:center;
+  background:var(--white); border:1px solid var(--hairline); border-radius:24px; padding:16px 16px 14px 20px; min-height:0; }
+body.home-wide[data-page="home"].ai-expanded:not(.ai-fullscreen) .dock .askbar::before{ display:none; }
+body.home-wide[data-page="home"].ai-expanded:not(.ai-fullscreen) .dock .askbar input{ grid-column:1 / 3; grid-row:1; font-size:17px; padding:2px 0; }
+body.home-wide[data-page="home"].ai-expanded:not(.ai-fullscreen) .dock .askbar .ab-mic{ grid-column:3; grid-row:1; }
+body.home-wide[data-page="home"].ai-expanded:not(.ai-fullscreen) .dock .askbar .ab-plus{ grid-column:1; grid-row:2; }
+body.home-wide[data-page="home"].ai-expanded:not(.ai-fullscreen) .dock .askbar .ab-send{ grid-column:3; grid-row:2; }
+body.home-wide[data-page="home"].ai-expanded:not(.ai-fullscreen) .dock{ padding-bottom:24px; }
 /* the content column stops a gutter short of the panel; the ask bar sits inside the panel's padding */
 body.home-wide.ai-expanded:not(.ai-fullscreen) .layout.hm-page.on{ grid-template-columns:minmax(0,1fr) calc(var(--hw-rail) - var(--s-8)); }
 body.home-wide.ai-expanded:not(.ai-fullscreen) .dock .dock-inner{ grid-template-columns:minmax(0,1fr) calc(var(--hw-rail) - var(--s-8) - 28px); }
@@ -28471,14 +28481,14 @@ body.home-wide.ai-expanded:not(.ai-fullscreen) .dock .askbar{ grid-column:2; jus
 body.home-wide.ai-expanded:not(.ai-fullscreen) .hm-ai-rail .rail-ai-head{ padding-right:150px; }
 /* the thread fills the rail down to the composer; the start block sits under the greeting */
 body.home-wide.ai-expanded:not(.ai-fullscreen) .hm-ai-rail .aic-thread{ max-height:none; }
-body.home-wide.ai-expanded:not(.ai-fullscreen) .hm-ai-rail .rail-ai-chat{ height:calc(100vh - 68px - 92px - 24px); overflow-y:auto; padding-right:6px;
+body.home-wide.ai-expanded:not(.ai-fullscreen) .hm-ai-rail .rail-ai-chat{ height:calc(100vh - 73px - 76px - 160px); overflow-y:auto; padding-right:6px;
   scrollbar-width:thin; scrollbar-color:#D9DDE3 transparent; }
 /* the floating chips are replaced by the start block on the wide home; they return in full view */
 body.home-wide[data-page="home"]:not(.ai-fullscreen) > .aic-chips{ display:none !important; }
 /* start block: what's on your mind (three full-width question rows) and explore what's possible (action chips) */
-.hw-start{ display:flex; flex-direction:column; gap:10px; margin-top:auto; padding-top:16px; }   /* pinned to the bottom of the panel, just above the ask bar */
+.hw-start{ display:flex; flex-direction:column; gap:10px; margin-top:4px; }
 .rail-ai-chat:has(.aic-msg.user) .hw-start, body.ai-fullscreen .hw-start, body:not(.home-wide) .hw-start{ display:none; }
-.hw-lbl{ font-size:16px; font-weight:600; color:var(--ink); margin:6px 0 2px; }
+.hw-lbl{ font-size:20px; font-weight:400; color:var(--ink); margin:14px 0 10px; letter-spacing:-0.2px; }
 .hw-lbl + .hw-lbl{ margin-top:18px; }
 .hw-q{ display:flex; align-items:center; justify-content:space-between; gap:14px; width:100%; text-align:left;
   font:400 15px/1.4 var(--font); color:var(--ink); background:#F7F8FA; border:1px solid transparent; border-radius:14px; padding:13px 14px 13px 16px; cursor:pointer;
@@ -28500,7 +28510,6 @@ body.home-wide.ai-expanded:not(.ai-fullscreen) .hm-page #s-money .tlegend{ flex-
 @media (max-width:1080px){
   body.home-wide.ai-expanded:not(.ai-fullscreen) .layout.hm-page.on{ display:block; }
   body.home-wide.ai-expanded:not(.ai-fullscreen) .layout.hm-page.on > .rail.hm-ai-rail{ position:static; width:auto; height:auto; border-left:0; padding:0; margin:var(--s-8) 0 0; }
-  body.home-wide[data-page="home"].ai-expanded:not(.ai-fullscreen) .topnav{ left:50%; transform:translateX(-50%); width:100%; max-width:var(--hw-max); }
   body.home-wide.ai-expanded:not(.ai-fullscreen) .hm-ai-rail .rail-ai-chat{ height:auto; }
 }
 </style>
@@ -28540,10 +28549,81 @@ body.home-wide.ai-expanded:not(.ai-fullscreen) .hm-page #s-money .tlegend{ flex-
     /* the treemap and journey chart measure their column; redraw once the rail has docked */
     [600, 1100].forEach(function(t){ setTimeout(function(){ window.dispatchEvent(new Event('resize')); }, t); });
   }
+  /* Home always starts with Boldin AI open: coming back to Home reopens it if it was closed elsewhere */
+  window.addEventListener('boldin:view', function(e){
+    if(e.detail!=='home') return;
+    setTimeout(function(){ if(window.__railAI && !document.body.classList.contains('ai-expanded')){ window.__railAI.refresh(); window.__railAI.expand(); mount(); } }, 260);
+  });
   /* same again whenever the rail opens or closes on the wide home */
   new MutationObserver(function(){ clearTimeout(window.__hwRz); window.__hwRz=setTimeout(function(){ window.dispatchEvent(new Event('resize')); }, 700); })
     .observe(document.body, {attributes:true, attributeFilter:['class']});
   if(document.readyState==='complete') setTimeout(boot, 80); else window.addEventListener('load', function(){ setTimeout(boot, 80); });
+
+  /* Full view, the Google Finance way: the panel glides left and grows until it owns the page,
+     then shrinks back into its column on the way out. The home content fades under it. */
+  var EASE='cubic-bezier(0.32,0.72,0,1)', fsBusy=false;
+  function homeRail(){ return document.querySelector('.layout.hm-page.on > .rail.hm-ai-rail'); }
+  function homeContent(){ return document.querySelector('.layout.hm-page.on > .content'); }
+  function controls(rail, show){ rail.querySelectorAll('.rail-ai-toggle, .rail-ai-fs').forEach(function(b){
+    if(show){ b.style.opacity=''; if(b.animate) b.animate([{opacity:0},{opacity:1}],{duration:200}); } else b.style.opacity='0'; }); }
+  function reduce(){ return window.matchMedia('(prefers-reduced-motion: reduce)').matches; }
+  function enterFull(){
+    var rail=homeRail(), content=homeContent(); if(!rail || !window.setFullscreen) return;
+    if(reduce()){ window.setFullscreen(true); return; }
+    fsBusy=true;
+    var old=rail.getBoundingClientRect();
+    controls(rail, false);
+    content.animate([{opacity:1},{opacity:0}],{duration:170, easing:'ease', fill:'forwards'}).onfinish=function(){
+      window.setFullscreen(true);
+      requestAnimationFrame(function(){
+        content.getAnimations().forEach(function(a){ a.cancel(); });
+        var nw=rail.getBoundingClientRect();
+        var dx=old.right-nw.right, inset=Math.max(0, nw.width-old.width);
+        rail.style.willChange='transform, clip-path';
+        var a=rail.animate([
+          {transform:'translateX('+dx+'px)', clipPath:'inset(0 0 0 '+inset+'px)'},
+          {transform:'none', clipPath:'inset(0 0 0 0)'}
+        ],{duration:560, easing:EASE});
+        a.onfinish=function(){ rail.style.willChange=''; controls(rail, true); fsBusy=false; };
+      });
+    };
+  }
+  function exitFull(){
+    var rail=homeRail(), content=homeContent(); if(!rail || !window.setFullscreen) return;
+    if(reduce()){ window.setFullscreen(false); return; }
+    fsBusy=true;
+    var cur=rail.getBoundingClientRect();
+    var vw=document.documentElement.clientWidth;
+    var railW=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--hw-rail'))||440;
+    var dockedRight=vw-Math.max(0,(vw-1600)/2);
+    var dx=dockedRight-cur.right, inset=Math.max(0, cur.width-railW);
+    controls(rail, false);
+    rail.style.willChange='transform, clip-path';
+    var a=rail.animate([
+      {transform:'none', clipPath:'inset(0 0 0 0)'},
+      {transform:'translateX('+dx+'px)', clipPath:'inset(0 0 0 '+inset+'px)'}
+    ],{duration:480, easing:EASE, fill:'forwards'});
+    a.onfinish=function(){
+      window.setFullscreen(false);
+      requestAnimationFrame(function(){
+        a.cancel(); rail.style.willChange='';
+        var r2=homeRail(); if(r2) controls(r2, true);
+        var c2=homeContent(); if(c2) c2.animate([{opacity:0, transform:'translateX(-14px)'},{opacity:1, transform:'none'}],{duration:340, easing:EASE});
+        fsBusy=false;
+      });
+    };
+  }
+  /* take over the Full view button on the wide home (window capture runs before the button's own handler) */
+  window.addEventListener('click', function(e){
+    var b=e.target.closest && e.target.closest('.layout.hm-page .rail-ai-fs, .layout.hm-page .rail-ai-toggle'); if(!b) return;
+    if(document.body.dataset.view!=='home' || !document.body.classList.contains('home-wide')) return;
+    var fs=document.body.classList.contains('ai-fullscreen');
+    /* the close button in full view returns to the docked rail; only in the rail does it close the AI */
+    if(b.classList.contains('rail-ai-toggle') && !fs) return;
+    e.preventDefault(); e.stopPropagation();
+    if(fsBusy) return;
+    if(fs) exitFull(); else enterFull();
+  }, true);
 })();
 </script>
 <!-- HOME WIDE END -->

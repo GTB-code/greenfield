@@ -36824,11 +36824,7 @@ body.nav-rail:not(.nr-mini) .topnav .right .alert-btn{ position:absolute; top:16
 body.nav-rail:not(.nr-mini) .topnav .right .alert-btn::after{ display:none; }
 body.nav-rail:not(.nr-mini) .topnav .right .alert-count{ top:0; right:-1px; width:19px; height:19px; font-size:11px; border-width:2px; }
 body.nav-rail.nr-mini .topnav .right .alert-btn{ order:2; }
-body.nav-rail .topnav .right .classic-link{
-  order:3; display:flex; align-items:center; height:34px; margin:0; padding:0 var(--s-3) 0 44px; border:0; border-radius:12px;
-  font-size:14px; font-weight:500; color:var(--text-secondary);
-}
-body.nav-rail .topnav .right .classic-link:hover{ background:#F6F7F8; color:var(--ink); border:0; }
+body.nav-rail .topnav .right .classic-link{ display:none; }   /* Classic View is not offered from the rail */
 /* the account row: who is signed in, and the same menu the hamburger opened */
 body.nav-rail .topnav .right .iconbtn[aria-label="Menu"]{ order:4; height:52px; margin-top:6px; padding:0 var(--s-2) 0 10px; color:var(--ink); }
 body.nav-rail .topnav .right .iconbtn[aria-label="Menu"]::after{ content:none; }
@@ -36850,7 +36846,6 @@ body.nav-rail.nr-mini .topnav .right{ margin:0 10px; padding:10px 0 14px; }
 body.nav-rail.nr-mini .topnav .right .iconbtn{ padding:0; gap:0; justify-content:center; }
 body.nav-rail.nr-mini .topnav .right [data-tip]::after{ display:none; }
 body.nav-rail.nr-mini .topnav .right .alert-count{ top:1px; right:2px; width:19px; height:19px; font-size:11px; }
-body.nav-rail.nr-mini .topnav .right .classic-link{ display:none; }
 body.nav-rail.nr-mini .topnav .right .iconbtn[aria-label="Menu"]{ padding:0; }
 body.nav-rail.nr-mini .topnav .right .iconbtn[aria-label="Menu"] .nr-me{ flex:none; }
 body.nav-rail.nr-mini .topnav .right .iconbtn[aria-label="Menu"] .nr-me .n,
@@ -36877,6 +36872,21 @@ body.nav-rail.nr-side .layout.page{
 body.nav-rail .dock{ left:var(--nr-w); transition:left var(--dur-base) var(--ease-out), opacity .3s ease, transform .4s cubic-bezier(.2,.7,.2,1); }
 body.nav-rail.nr-side .dock .dock-inner{ max-width:1582px; margin-left:calc(var(--nr-gut) - 264px); margin-right:0; }
 body.nav-rail:not(.nr-side) .dock .dock-inner{ margin-left:0; margin-right:0; }
+/* The Ask anything bar lives at the foot of the right rail, not under the centre column. Clicking it opens
+   Boldin AI in that rail, and the bar grows into the panel's larger ask box in place (see the script). */
+body.nav-rail .rail.bai-host{ min-height:calc(100vh - 40px - 24px); }
+body.nav-rail.nr-dockrail .dock{
+  left:var(--nr-dock-l, auto); right:auto; width:var(--nr-dock-w, 410px); padding:28px 0;
+  transition:opacity .3s ease;
+}
+body.nav-rail.nr-dockrail .dock .dock-inner{ display:block; max-width:none; margin:0; padding:0; }
+body.nav-rail.nr-dockrail .dock .askbar{ max-width:none; }
+body.nav-rail.nr-dockrail.bai-open .dock{ transform:none; transition:none; }
+body.nav-rail.nr-dockrail .rail.bai-host .bai{ animation:none; }
+body.nav-rail.nr-dockrail .rail.bai-host .bai.nr-grow .bai-head,
+body.nav-rail.nr-dockrail .rail.bai-host .bai.nr-grow .bai-thread,
+body.nav-rail.nr-dockrail .rail.bai-host .bai.nr-grow .bai-chips,
+body.nav-rail.nr-dockrail .rail.bai-host .bai.nr-grow .bai-hero{ animation:nrSubIn .36s var(--ease-out); }
 /* full-screen Boldin AI follows the same rule: left-aligned, spare room on the right */
 body.nav-rail .bai.is-full, body.nav-rail .hm-page .bai-col .bai.is-full, body.nav-rail .rail.bai-host .bai.is-full,
 body.nav-rail .sum-route.bai-host .bai.is-full, body.nav-rail .sum-ai.bai-host .bai.is-full{ padding-left:var(--s-8); padding-right:max(var(--s-8), calc(100% - 1318px)); }
@@ -36902,6 +36912,7 @@ body.nav-rail .hm-page .money-total{ flex-wrap:wrap !important; row-gap:var(--s-
 /* prototype controls that sat in the bottom-left corner step clear of the rail */
 body.nav-rail .os-view, body.nav-rail.sum-open .rt-layout{ left:calc(var(--nr-w) + 24px); }
 body.nav-rail .demo-reset{ left:calc(var(--nr-w) + 10px); }
+body.nav-rail.nr-dockrail .adv-proto{ bottom:108px; }   /* prototype control: clear of the ask bar */
 
 /* short windows (a 13-inch laptop): rows tighten so the open sub-nav keeps its room */
 @media (max-height:820px){
@@ -37011,11 +37022,13 @@ body.flow-open .nr-switch, body[data-page="signup"] .nr-switch, body.trial-over 
       var r=sub.getBoundingClientRect();
       body.style.setProperty('--nr-sub-top', r.top+'px');
       body.style.setProperty('--nr-sub-h', r.height+'px');
+      placeDock();
       if(performance.now()<end) raf=requestAnimationFrame(step);
     })();
   }
   function sync(){
     if(!on()) return;
+    placeDock();
     var s=currentSide(), item=activeItem();
     document.querySelectorAll('.side.nr-pin').forEach(function(x){ if(x!==s) x.classList.remove('nr-pin'); });
     if(s) s.classList.add('nr-pin');
@@ -37040,6 +37053,40 @@ body.flow-open .nr-switch, body[data-page="signup"] .nr-switch, body.trial-over 
     }
     var now=parseFloat(sub.style.height)||0;
     if(Math.abs(now-want)>0.5){ sub.style.height=want+'px'; follow(360); } else follow(0);
+  }
+  /* ---- the ask bar sits at the foot of the right rail ---- */
+  function shownLayout(){ var out=null; document.querySelectorAll('.layout.page.on').forEach(function(l){ if(!out && shown(l)) out=l; }); return out; }
+  function placeDock(){
+    if(!on()) return;
+    var lay=shownLayout(), rail=null;
+    if(lay) [].forEach.call(lay.children, function(c){ if(!rail && c.classList.contains('rail') && c.offsetWidth>=240) rail=c; });
+    body.classList.toggle('nr-dockrail', !!rail);
+    if(rail){
+      var r=rail.getBoundingClientRect();
+      body.style.setProperty('--nr-dock-l', r.left+'px');
+      body.style.setProperty('--nr-dock-w', r.width+'px');
+    }
+  }
+  var reduceMotion=window.matchMedia('(prefers-reduced-motion: reduce)').matches, wasOpen=body.classList.contains('bai-open');
+  function grow(from, tries){
+    var box=document.querySelector('.rail.bai-host .bai .bai-ask');
+    if(!box || !box.offsetHeight){ if(tries>0) requestAnimationFrame(function(){ grow(from, tries-1); }); return; }
+    var c=box.getBoundingClientRect(), bai=box.closest('.bai');
+    if(bai){ bai.classList.add('nr-grow'); setTimeout(function(){ bai.classList.remove('nr-grow'); }, 420); }
+    if(reduceMotion || !box.animate) return;
+    box.animate([
+      { transformOrigin:'right bottom', transform:'translateY('+(from.bottom-c.bottom)+'px) scaleX('+(from.width/c.width)+')', clipPath:'inset('+Math.max(0, c.height-from.height)+'px 0 0 0 round 30px)' },
+      { transformOrigin:'right bottom', transform:'none', clipPath:'inset(0 0 0 0 round 24px)' }
+    ], { duration:340, easing:'cubic-bezier(.2,.7,.2,1)' });
+  }
+  function onBodyClass(){
+    var open=body.classList.contains('bai-open');
+    if(open && !wasOpen && on() && body.classList.contains('nr-dockrail')){
+      var bar=document.querySelector('.dock .askbar');
+      if(bar && bar.offsetWidth) grow(bar.getBoundingClientRect(), 12);
+    }
+    wasOpen=open;
+    setTimeout(sync, 460);
   }
   var queued=false;
   function queue(){ if(queued) return; queued=true; requestAnimationFrame(function(){ queued=false; sync(); }); }
@@ -37070,7 +37117,7 @@ body.flow-open .nr-switch, body[data-page="signup"] .nr-switch, body.trial-over 
       /* the plan sub-nav's own fold-to-icons is replaced by the rail's */
       if(body.classList.contains('rail-mini')){ hadRailMini=true; body.classList.remove('rail-mini'); }
     } else {
-      body.classList.remove('nr-side','nr-orphan');
+      body.classList.remove('nr-side','nr-orphan','nr-dockrail');
       document.querySelectorAll('.side.nr-pin').forEach(function(x){ x.classList.remove('nr-pin'); });
       if(hadRailMini){ body.classList.add('rail-mini'); hadRailMini=null; }
       side=null; lastKey='';
@@ -37094,7 +37141,7 @@ body.flow-open .nr-switch, body[data-page="signup"] .nr-switch, body.trial-over 
   window.addEventListener('boldin:view', function(){ queue(); setTimeout(sync, 60); });
   window.addEventListener('resize', function(){ queue(); placeAll(); });
   if(wide.addEventListener) wide.addEventListener('change', apply);
-  new MutationObserver(queue).observe(body, {attributes:true, attributeFilter:['class','data-view','data-page']});
+  new MutationObserver(function(){ onBodyClass(); queue(); }).observe(body, {attributes:true, attributeFilter:['class','data-view','data-page']});
   new MutationObserver(queue).observe(document.documentElement, {subtree:true, childList:true, attributes:true, attributeFilter:['class','hidden','aria-expanded']});
   window.__navRail={ set:function(m){ mode=m; put(K_MODE, m); apply(); }, mini:function(v){ mini=!!v; put(K_MINI, mini ? '1' : '0'); apply(); }, sync:sync };
   apply();

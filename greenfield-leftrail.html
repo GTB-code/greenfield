@@ -36772,6 +36772,17 @@ body.nav-rail[data-view="plan"]:not(.nr-mini) nav.modes a[data-view="plan"] .nr-
 body.nav-rail.compare-view:not(.nr-mini) nav.modes a[data-view="plan"] .nr-cmp{ opacity:1; }
 body.nav-rail nav.modes a[data-view="plan"] .nr-cmp:hover{ text-decoration:underline; }
 
+/* the open section's row is a toggle: a caret says so, and clicking the row folds or unfolds its sub-nav */
+.nr-caret{ display:none; }
+body.nav-rail.nr-side:not(.nr-mini):not(.nr-orphan) nav.modes .active > .nr-caret{
+  display:block; flex:none; width:16px; height:16px; margin-left:auto; color:#8A90A0;
+  transition:transform var(--dur-base) var(--ease-out);
+}
+body.nav-rail nav.modes .nr-cmp + .nr-caret{ margin-left:var(--s-2) !important; }
+body.nav-rail:not([data-view="plan"]) nav.modes .nr-cmp + .nr-caret{ margin-left:auto !important; }
+body.nav-rail.nr-shut nav.modes .active > .nr-caret{ transform:rotate(-90deg); }
+body.nav-rail.nr-shut:not(.nr-mini) nav.modes a.active, body.nav-rail.nr-shut:not(.nr-mini) nav.modes .nr-go.active{ background:#F6F7F8; }
+body.nav-rail.nr-shut .layout.page .side.nr-pin{ visibility:hidden; pointer-events:none; transition:visibility 0s linear var(--dur-base); }
 /* the slot a page's sub-nav opens into, directly under its parent */
 body.nav-rail nav.modes .nr-sub{ display:block; flex:none; height:0; transition:height var(--dur-base) var(--ease-out); }
 body.nav-rail nav.modes .nr-sub.nr-now{ transition:none; }
@@ -36982,6 +36993,9 @@ body.flow-open .nr-switch, body[data-page="signup"] .nr-switch, body.trial-over 
     planLink.appendChild(cmp);
   }
 
+  var I_CARET='<svg class="nr-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
+  [].forEach.call(modes.querySelectorAll('a, .nr-go'), function(a){ a.insertAdjacentHTML('beforeend', I_CARET); });
+  var shut=false;
   var menuBtn=right.querySelector('.iconbtn[aria-label="Menu"]');
   if(menuBtn){
     var me=document.querySelector('#topMenu .tm-me'), av=me && me.querySelector('.tm-av'), nm=me && me.querySelector('.n');
@@ -37037,6 +37051,7 @@ body.flow-open .nr-switch, body[data-page="signup"] .nr-switch, body.trial-over 
     var key=(s ? (body.dataset.view||'') : '')+'|'+(item ? 'i' : 'o');
     var moved = key!==lastKey || s!==side;
     if(moved){
+      shut=false;
       sub.classList.add('nr-now'); sub.style.height='0px';
       if(item) item.after(sub); else modes.appendChild(sub);
       void sub.offsetHeight; sub.classList.remove('nr-now');
@@ -37044,7 +37059,9 @@ body.flow-open .nr-switch, body[data-page="signup"] .nr-switch, body.trial-over 
     }
     side=s; lastKey=key;
     var want=0;
-    if(s && !body.classList.contains('nr-mini')){
+    body.classList.toggle('nr-shut', shut && !!s);
+    [].forEach.call(modes.querySelectorAll('a, .nr-go'), function(a){ if(a===item && s) a.setAttribute('aria-expanded', shut ? 'false' : 'true'); else a.removeAttribute('aria-expanded'); });
+    if(s && !shut && !body.classList.contains('nr-mini')){
       var others=0; [].forEach.call(modes.children, function(c){ if(c!==sub && shown(c) && getComputedStyle(c).position!=='absolute') others+=c.offsetHeight+2; });
       var room=Math.max(120, modes.clientHeight - parseFloat(getComputedStyle(modes).paddingTop) - others - 6);
       var nat=naturalHeight(s); want=Math.min(nat, room);
@@ -37088,6 +37105,14 @@ body.flow-open .nr-switch, body[data-page="signup"] .nr-switch, body.trial-over 
     wasOpen=open;
     setTimeout(sync, 460);
   }
+  /* clicking the row you are already on folds its sub-nav; clicking it again (or any other row) opens one */
+  modes.addEventListener('click', function(e){
+    if(!on() || body.classList.contains('nr-mini') || e.target.closest('.nr-cmp')) return;
+    var it=e.target.closest('a, .nr-go');
+    if(!it || !side || it!==activeItem()) return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    shut=!shut; sync();
+  }, true);
   var queued=false;
   function queue(){ if(queued) return; queued=true; requestAnimationFrame(function(){ queued=false; sync(); }); }
 
@@ -37117,7 +37142,7 @@ body.flow-open .nr-switch, body[data-page="signup"] .nr-switch, body.trial-over 
       /* the plan sub-nav's own fold-to-icons is replaced by the rail's */
       if(body.classList.contains('rail-mini')){ hadRailMini=true; body.classList.remove('rail-mini'); }
     } else {
-      body.classList.remove('nr-side','nr-orphan','nr-dockrail');
+      body.classList.remove('nr-side','nr-orphan','nr-dockrail','nr-shut');
       document.querySelectorAll('.side.nr-pin').forEach(function(x){ x.classList.remove('nr-pin'); });
       if(hadRailMini){ body.classList.add('rail-mini'); hadRailMini=null; }
       side=null; lastKey='';

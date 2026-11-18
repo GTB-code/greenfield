@@ -36663,6 +36663,104 @@ body.sum-open .rt-layout{ display:inline-flex; }
   window.__routeLayout={ set:function(m){ try{ localStorage.setItem(KEY, m); }catch(x){} apply(m); } };
 })();
 </script>
+<!-- ===== Scenario pop-out: tweak a scenario's inputs from the snapshot (right rail), live ===== -->
+<style>
+.scn-explore{ display:inline-flex; align-items:center; gap:6px; margin:-2px 0 14px; font:inherit; font-size:14px; font-weight:600; color:var(--green-cta); background:none; border:0; padding:0; cursor:pointer; }
+.scn-explore:hover{ text-decoration:underline; text-underline-offset:3px; }
+.scn-explore svg{ width:14px; height:14px; }
+.wi-band .wi-tweak{ margin-right:6px; }
+/* the pop-out sits at the top of the plan rail */
+.scn-pop{ display:none; position:relative; margin:0 0 20px; padding:16px 18px 16px; border:1.5px dashed var(--hairline-strong); border-radius:18px; background:#fff; animation:spIn .35s cubic-bezier(.2,.9,.2,1) both; }
+.scn-pop.on{ display:block; }
+@keyframes spIn{ from{ opacity:0; transform:translateY(8px); } to{ opacity:1; transform:none; } }
+.scn-pop .sp-head{ display:flex; align-items:center; gap:8px; margin:0 0 4px; padding:0; background:none !important; color:var(--ink); border:0; border-radius:0; }
+.scn-pop .sp-head *{ color:inherit; }
+.scn-pop .sp-tag{ font-size:11px; font-weight:600; color:var(--ink) !important; background:#fff; border:1.5px dashed var(--hairline-strong); border-radius:999px; padding:2px 8px; }
+.scn-pop .sp-name{ font-size:16px; font-weight:600; color:var(--ink) !important; flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.scn-pop .sp-x{ width:30px; height:30px; border-radius:50%; border:1px solid var(--hairline); background:#fff; color:var(--ink); font-size:17px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+.scn-pop .sp-sub{ font-size:13px; color:var(--text-secondary); margin:0 0 12px; }
+.scn-pop .sp-lever{ padding:7px 0; border-top:1px solid var(--hairline); }
+.scn-pop .sp-lever:first-of-type{ border-top:0; }
+.scn-pop .sp-lr{ display:flex; justify-content:space-between; align-items:baseline; font-size:13px; color:var(--text-secondary); }
+.scn-pop .sp-lr b{ font-size:15px; font-weight:600; color:var(--ink); }
+.scn-pop .sp-lr small{ font-size:12px; color:var(--text-muted); }
+.scn-pop .sp-lr small.diff{ color:var(--green-cta); font-weight:600; }
+.scn-pop input[type=range]{ width:100%; margin:6px 0 0; accent-color:var(--green-cta); }
+.scn-pop .sp-stats{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin:14px 0 0; }
+.scn-pop .sp-st{ border:1px solid var(--hairline); border-radius:12px; padding:9px 10px; }
+.scn-pop .sp-st small{ display:block; font-size:11.5px; color:var(--text-secondary); }
+.scn-pop .sp-st b{ display:block; font-size:17px; font-weight:600; color:var(--ink); margin-top:1px; }
+.scn-pop .sp-st em{ display:block; font-style:normal; font-size:11.5px; color:var(--text-muted); margin-top:1px; } .scn-pop .sp-st em.down{ color:#B3261E; } .scn-pop .sp-st em.up{ color:var(--green-cta); }
+.scn-pop .sp-chart{ margin-top:12px; } .scn-pop .sp-chart svg{ width:100%; height:auto; display:block; overflow:visible; }
+.scn-pop .sp-leg{ display:flex; gap:14px; font-size:12px; color:var(--text-secondary); margin-top:4px; }
+.scn-pop .sp-leg span{ display:inline-flex; align-items:center; gap:6px; } .scn-pop .sp-leg i{ width:14px; height:0; border-top:2px solid var(--ink); } .scn-pop .sp-leg i.pencil{ border-top-style:dashed; border-color:#2E6FD8; }
+.scn-pop .sp-acts{ display:flex; gap:8px; margin-top:14px; }
+.scn-pop .sp-acts button{ font:inherit; font-size:13.5px; font-weight:600; border-radius:999px; padding:9px 14px; cursor:pointer; border:1px solid var(--hairline-strong); background:#fff; color:var(--ink); }
+.scn-pop .sp-acts .pri{ background:var(--green-cta); border-color:var(--green-cta); color:#fff; }
+.scn-pop .sp-acts .lnk{ border:0; color:var(--green-cta); padding-left:4px; margin-left:auto; }
+.rail.scn-pop-on > :not(.scn-pop):not(.bai){ display:none !important; }
+.rail.scn-pop-on{ max-height:calc(100vh - 150px); overflow:auto; scrollbar-width:thin; }
+body.whatif-open .rail.scn-pop-on{ padding-top:8px; }
+</style>
+<script>
+(function(){
+  'use strict';
+  var ARROW='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
+  var LEVERS=[
+    { k:'ret',   t:'Retirement age',     min:62,  max:72,  step:1,   f:function(v){ return String(v); } },
+    { k:'ss',    t:'Social Security age', min:62, max:70,  step:1,   f:function(v){ return String(v); } },
+    { k:'spend', t:'Monthly spending',   min:4500, max:9000, step:100, f:function(v){ return '$'+(+v).toLocaleString('en-US'); } },
+    { k:'life',  t:'Lifestyle',          min:0,   max:2,   step:1,   f:function(v){ return ['Lean','Comfortable','Generous'][+v]; } },
+    { k:'ret_r', t:'Investment return',  min:0,   max:2,   step:1,   f:function(v){ return ['Conservative','Balanced','Growth'][+v]; } }
+  ];
+  function usdM(v){ return v>=1e6?'$'+(v/1e6).toFixed(2)+'M':'$'+Math.round(v/1000)+'K'; }
+  var pop=null, rail=null, timer=null;
+  function railEl(){ var lay=document.querySelector('.layout.page[data-page="plan"]'); return lay ? lay.querySelector(':scope > .rail') : null; }
+  function name(){ var n=document.querySelector('.wi-band .wi-name'); return (n && n.textContent.trim()) || 'What-if'; }
+  function build(){
+    var WI=window.WHATIF; if(!WI) return '';
+    var L=WI.levers()||{}, B=WI.base()||{}, m=WI.metricsFor(L, WI.state.moves), p=WI.planMetrics();
+    var h='<div class="sp-head"><span class="sp-tag">What-if</span><span class="sp-name">'+name()+'</span><button type="button" class="sp-x" aria-label="Close">&times;</button></div><p class="sp-sub">Change anything here and watch the snapshot move. Nothing is saved until you keep it.</p>';
+    LEVERS.forEach(function(l){ var v=L[l.k]!=null?L[l.k]:B[l.k], b=B[l.k], diff=v!==b; h+='<div class="sp-lever" data-k="'+l.k+'"><div class="sp-lr"><span>'+l.t+'</span><span><b>'+l.f(v)+'</b> <small class="'+(diff?'diff':'')+'">'+(diff?'plan '+l.f(b):'same as plan')+'</small></span></div><input type="range" min="'+l.min+'" max="'+l.max+'" step="'+l.step+'" value="'+v+'" aria-label="'+l.t+'"></div>'; });
+    if(m && p){
+      var dC=m.conf-p.conf, dE=m.end-p.end;
+      h+='<div class="sp-stats"><div class="sp-st"><small>Funded to</small><b>age '+m.funded+'</b><em>'+(m.funded===p.funded?'same as plan':(m.funded<p.funded?'down':'up')+' from '+p.funded)+'</em></div><div class="sp-st"><small>Confidence</small><b>'+m.conf+'%</b><em class="'+(dC<0?'down':dC>0?'up':'')+'">'+(dC?(dC>0?'+':'')+dC+' pts vs plan':'same as plan')+'</em></div><div class="sp-st"><small>Ending balance</small><b>'+usdM(m.end)+'</b><em class="'+(dE<0?'down':dE>0?'up':'')+'">'+(dE?(dE>0?'+':'−')+usdM(Math.abs(dE))+' vs plan':'same as plan')+'</em></div></div>';
+      h+='<div class="sp-chart">'+spark(p.rows, m.rows)+'</div><div class="sp-leg"><span><i></i>Your plan</span><span><i class="pencil"></i>'+name()+'</span></div>';
+    }
+    h+='<div class="sp-acts"><button type="button" class="pri sp-keep">Keep it</button><button type="button" class="sp-back">Open scenario</button><button type="button" class="lnk sp-reset">Reset</button></div>';
+    return h;
+  }
+  function spark(pr, mr){ if(!pr||!mr) return ''; var W=320,H=90,L=6,R=6,T=6,B=16; var all=pr.concat(mr).map(function(r){ return r.bal; }); var mx=Math.max.apply(null,all)||1; var n=Math.max(pr.length,mr.length);
+    function X(i){ return L+(W-L-R)*i/(n-1); } function Y(v){ return T+(H-T-B)*(1-Math.max(0,v)/mx); }
+    function path(rows){ return rows.map(function(r,i){ return (i?'L':'M')+X(i).toFixed(1)+' '+Y(r.bal).toFixed(1); }).join(' '); }
+    var y0=pr[0].y, y1=pr[pr.length-1].y;
+    return '<svg viewBox="0 0 '+W+' '+H+'"><line x1="'+L+'" x2="'+(W-R)+'" y1="'+Y(0)+'" y2="'+Y(0)+'" stroke="#E6E8EB"/><path d="'+path(pr)+'" fill="none" stroke="#10182C" stroke-width="2"/><path d="'+path(mr)+'" fill="none" stroke="#2E6FD8" stroke-width="2" stroke-dasharray="5 4"/><text x="'+L+'" y="'+(H-3)+'" font-size="10.5" fill="#7A7D8C">'+y0+'</text><text x="'+(W-R)+'" y="'+(H-3)+'" font-size="10.5" fill="#7A7D8C" text-anchor="end">'+y1+'</text></svg>'; }
+  function refreshStats(){ if(!pop) return; var tmp=document.createElement('div'); tmp.innerHTML=build(); var a=pop.querySelector('.sp-stats'), b=tmp.querySelector('.sp-stats'); if(a&&b) a.replaceWith(b); var c=pop.querySelector('.sp-chart'), d=tmp.querySelector('.sp-chart'); if(c&&d) c.replaceWith(d); var n=pop.querySelector('.sp-name'); if(n) n.textContent=name(); pop.querySelectorAll('.sp-lever').forEach(function(lv){ var k=lv.dataset.k, src=tmp.querySelector('.sp-lever[data-k="'+k+'"] .sp-lr'); if(src) lv.querySelector('.sp-lr').replaceWith(src); }); }
+  function open(){
+    rail=railEl(); if(!rail || !window.WHATIF) return;
+    if(!window.WHATIF.state.open) return;
+    if(!pop){ pop=document.createElement('div'); pop.className='scn-pop'; pop.setAttribute('role','region'); pop.setAttribute('aria-label','Scenario inputs');
+      pop.addEventListener('input', function(e){ var r=e.target; if(r.type!=='range') return; var k=r.closest('.sp-lever').dataset.k, o={}; o[k]=+r.value; window.WHATIF.setLevers(o); clearTimeout(timer); timer=setTimeout(refreshStats, 60); });
+      pop.addEventListener('click', function(e){ if(e.target.closest('.sp-x')){ close(); return; } if(e.target.closest('.sp-keep')){ window.WHATIF.keep(); close(); return; } if(e.target.closest('.sp-reset')){ var B=window.WHATIF.base()||{}; var o={}; LEVERS.forEach(function(l){ o[l.k]=B[l.k]; }); window.WHATIF.setLevers(o); render(); return; } if(e.target.closest('.sp-back')){ close(); if(window.SCENARIOS){ window.SCENARIOS.open(); } } }); }
+    render(); rail.insertBefore(pop, rail.firstChild); rail.classList.add('scn-pop-on'); pop.classList.add('on');
+    if(window.__bai && window.__bai.isOpen()) window.__bai.close();
+    setTimeout(function(){ var j=document.querySelector('#snapshotView .rm-head'); if(j) window.scrollTo({ top:Math.max(0, j.getBoundingClientRect().top+window.scrollY-150), behavior:'smooth' }); }, 120);
+  }
+  function render(){ if(pop) pop.innerHTML=build(); }
+  function close(){ if(!pop) return; pop.classList.remove('on'); if(rail){ rail.classList.remove('scn-pop-on'); } }
+  /* if the what-if is discarded elsewhere, the pop-out goes too; if its name changes, it follows */
+  setInterval(function(){ if(pop && pop.classList.contains('on')){ if(!window.WHATIF || !window.WHATIF.state.open || document.body.classList.contains('scn-open')) close(); else { var n=pop.querySelector('.sp-name'); if(n && n.textContent!==name()) n.textContent=name(); } } }, 500);
+  /* entry points */
+  function goSnapshot(){ if(window.SCENARIOS) window.SCENARIOS.close(); var nav=[].slice.call(document.querySelectorAll('.topnav nav.modes a')).filter(function(x){ return /my plans/i.test(x.textContent); })[0]; if(nav && !/my plans/i.test((document.querySelector('.topnav nav.modes a.on, .topnav nav.modes a[aria-current]')||{}).textContent||'')) nav.click(); setTimeout(open, 350); }
+  function arm(){
+    var step=[].slice.call(document.querySelectorAll('#scnPage .so-step')).filter(function(s){ return /See what it does/.test(s.textContent); })[0];
+    if(step && !step.parentNode.querySelector('.scn-explore')){ var b=document.createElement('button'); b.type='button'; b.className='scn-explore'; b.innerHTML='Explore how this scenario impacts your snapshot'+ARROW; step.insertAdjacentElement('afterend', b); b.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); goSnapshot(); }); }
+    var acts=document.querySelector('.wi-band .wi-acts'); if(acts && !acts.querySelector('.wi-tweak')){ var t=document.createElement('button'); t.type='button'; t.className='wi-btn ghost wi-tweak'; t.textContent='Tweak on snapshot'; acts.insertBefore(t, acts.firstChild); t.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); goSnapshot(); }); }
+  }
+  setInterval(arm, 500);
+  window.__scnPop={ open:open, close:close };
+})();
+</script>
 <!-- ===== right rail +50px on every page ===== -->
 <style>
 .layout, .dock .dock-inner{ grid-template-columns:200px minmax(0,620px) 1fr; }

@@ -36708,7 +36708,7 @@ body.bai-open .hm-page .welcome{ margin-right:calc(410px + 24px); }
      Switch between "Left rail" and "Top nav" from the tab on the right edge (review chrome, not product UI).
      State: localStorage boldin.navLayout = rail | top, boldin.navRailMini = 1 | 0.  Desktop only (761px and up). -->
 <style id="navRailCss">
-body.nav-rail{ --nr-w:264px; --nr-gut:40px; --nav-h:0px; }
+body.nav-rail{ --nr-w:264px; --nr-gut:32px; --nav-h:0px; }
 body.nav-rail.nr-mini{ --nr-w:64px; }
 
 /* ---------- the rail itself: the same header element, stood on its side ---------- */
@@ -36716,7 +36716,7 @@ body.nav-rail .topnav{
   top:0; left:0; bottom:0; transform:none; width:var(--nr-w); max-width:none; height:auto;
   flex-direction:column; align-items:stretch; padding:0;
   /* see-through and click-through: the page's own sub-nav shows in the slot left for it (the page behind is white) */
-  background:transparent; border-right:1px solid var(--hairline); pointer-events:none;
+  background:transparent; pointer-events:none;   /* no divider: whitespace separates the rail from the page */
   transition:width var(--dur-base) var(--ease-out);
 }
 body.nav-rail .topnav.navhide{ background:transparent; pointer-events:none; }
@@ -36797,7 +36797,7 @@ body.nav-rail .layout.page .side.nr-pin.nr-more.nr-end{ -webkit-mask-image:none;
 
 /* ---------- utilities and the account, at the foot ---------- */
 body.nav-rail .topnav .right{
-  flex:none; margin:0; padding:var(--s-2) var(--s-5) var(--s-3); gap:2px;
+  flex:none; margin:0 var(--s-5); padding:var(--s-2) 0 var(--s-3); gap:2px;
   flex-direction:column; align-items:stretch; border-top:1px solid var(--hairline);
 }
 body.nav-rail .topnav .right .iconbtn{
@@ -36846,7 +36846,7 @@ body.nav-rail.nr-mini .nr-toggle{ top:68px; right:auto; left:12px; }
 body.nav-rail.nr-mini nav.modes{ padding:var(--s-12) 10px 0; }
 body.nav-rail.nr-mini nav.modes a, body.nav-rail.nr-mini nav.modes .nr-go{ padding:0; gap:0; justify-content:center; font-size:0; }
 body.nav-rail.nr-mini nav.modes .nr-sub{ height:0 !important; }
-body.nav-rail.nr-mini .topnav .right{ padding:10px 10px 14px; }
+body.nav-rail.nr-mini .topnav .right{ margin:0 10px; padding:10px 0 14px; }
 body.nav-rail.nr-mini .topnav .right .iconbtn{ padding:0; gap:0; justify-content:center; }
 body.nav-rail.nr-mini .topnav .right [data-tip]::after{ display:none; }
 body.nav-rail.nr-mini .topnav .right .alert-count{ top:1px; right:2px; width:19px; height:19px; font-size:11px; }
@@ -36857,19 +36857,29 @@ body.nav-rail.nr-mini .topnav .right .iconbtn[aria-label="Menu"] .nr-me .n,
 body.nav-rail.nr-mini .topnav .right .iconbtn[aria-label="Menu"] > svg.nr-chev{ display:none; }
 
 /* ---------- the page moves over: no top bar to clear, a rail to clear instead ---------- */
+/* Left-aligned: the page starts at the rail and grows to the right. The centre column expands with the
+   window up to 844px, then locks; Boldin AI keeps 410px beside it, and anything wider is white space on the right.
+   (844 + 32 + 410 is the same 1286px the Home and Optimize grids already lock at, so the AI column lands in one place on every page.) */
 body.nav-rail .layout.page{
   max-width:min(1350px, calc(100% - var(--nr-w)));
-  margin-left:calc(var(--nr-w) + max(0px, (100% - var(--nr-w) - 1350px) / 2)); margin-right:0;
+  margin-left:var(--nr-w); margin-right:0;
   padding-top:var(--s-10) !important;
   transition:margin-left var(--dur-base) var(--ease-out);
 }
 /* pages whose first grid column was the sub-nav: that column now lies under the rail */
 body.nav-rail.nr-side .layout.page{
-  max-width:1350px;
-  margin-left:calc(var(--nr-w) - 264px + max(var(--nr-gut), (100% - var(--nr-w) - 1054px) / 2));
+  max-width:1582px;
+  margin-left:calc(var(--nr-w) - 264px + var(--nr-gut));
 }
+:where(body.nav-rail.nr-side) .layout,
+:where(body.nav-rail.nr-side) .dock .dock-inner{ grid-template-columns:200px minmax(0,844px) 410px; }
+:where(body.nav-rail.nr-side) .layout.adv-page{ grid-template-columns:200px minmax(0,844px) 410px; }
 body.nav-rail .dock{ left:var(--nr-w); transition:left var(--dur-base) var(--ease-out), opacity .3s ease, transform .4s cubic-bezier(.2,.7,.2,1); }
-body.nav-rail.nr-side .dock .dock-inner{ margin-left:calc(max(var(--nr-gut), (100% - 1054px) / 2) - 264px); margin-right:0; }
+body.nav-rail.nr-side .dock .dock-inner{ max-width:1582px; margin-left:calc(var(--nr-gut) - 264px); margin-right:0; }
+body.nav-rail:not(.nr-side) .dock .dock-inner{ margin-left:0; margin-right:0; }
+/* full-screen Boldin AI follows the same rule: left-aligned, spare room on the right */
+body.nav-rail .bai.is-full, body.nav-rail .hm-page .bai-col .bai.is-full, body.nav-rail .rail.bai-host .bai.is-full,
+body.nav-rail .sum-route.bai-host .bai.is-full, body.nav-rail .sum-ai.bai-host .bai.is-full{ padding-left:var(--s-8); padding-right:max(var(--s-8), calc(100% - 1318px)); }
 /* things that stuck under the 73px bar now stick to the top of the window */
 body.nav-rail .rail, body.nav-rail .adv-page .side:not(.nr-pin), body.nav-rail .sum-layout .sum-route,
 body.nav-rail #payRail .summary, body.nav-rail #signRail .esign-side,
